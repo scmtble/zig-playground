@@ -27,6 +27,31 @@
             zigPkgs.master
           ];
         };
+        packages.default = pkgs.stdenv.mkDerivation {
+          pname = "zig-playground";
+          version = "dev";
+
+          src = ./.;
+
+          buildInputs = [ zigPkgs.master ];
+          buildPhase = ''
+            export ZIG_GLOBAL_CACHE_DIR=$TMPDIR/zig-cache
+            zig build
+          '';
+          installPhase = ''
+            mkdir -p $out/bin
+            cp ./zig-out/bin/zig-playground $out/bin/
+          '';
+        };
+
+        packages.docker = pkgs.dockerTools.buildLayeredImage {
+          name = "zig-playground";
+          tag = "latest";
+          contents = [ self.packages.${system}.default ];
+          config = {
+            Cmd = [ "/bin/zig-playground" ];
+          };
+        };
       }
     );
 }

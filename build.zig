@@ -7,13 +7,7 @@ pub fn build(b: *std.Build) !void {
     var name = try std.ArrayList(u8).initCapacity(b.allocator, 10);
     defer name.deinit(b.allocator);
 
-    try name.appendSlice(b.allocator, "zig_demo_");
-
-    if (target.query.cpu_arch) |arch| {
-        try name.appendSlice(b.allocator, @tagName(arch));
-    } else {
-        try name.appendSlice(b.allocator, "X86_64");
-    }
+    try name.appendSlice(b.allocator, "zig-playground");
 
     const exe = b.addExecutable(.{
         .name = name.items,
