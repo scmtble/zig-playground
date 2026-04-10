@@ -33,7 +33,9 @@
 
           src = ./.;
 
-          buildInputs = [ zigPkgs.master ];
+          buildInputs = [
+            zigPkgs.master
+          ];
           buildPhase = ''
             export ZIG_GLOBAL_CACHE_DIR=$TMPDIR/zig-cache
             zig build

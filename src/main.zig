@@ -2,8 +2,16 @@ const std = @import("std");
 const Io = std.Io;
 const http = std.http;
 
-pub fn main(init: std.process.Init) !void {
-    const io = init.io;
+pub fn main(init: std.process.Init.Minimal) !void {
+    var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
+    const gpa = debug_allocator.allocator();
+
+    var threaded: std.Io.Threaded = .init(gpa, .{
+        .argv0 = .init(init.args),
+        .environ = init.environ,
+    });
+    defer threaded.deinit();
+    const io = threaded.io();
 
     const port = 8080;
     const ip = "0.0.0.0";
@@ -15,14 +23,10 @@ pub fn main(init: std.process.Init) !void {
     std.log.info("Server running at http://{s}:{d}", .{ ip, port });
 
     while (true) {
-        var future = io.async(std.Io.net.Server.accept, .{ &server, io });
-        const stream: std.Io.net.Stream = try future.await(io);
-        // [TODO] Handle errors properly
-        _ = io.concurrent(handleConnection, .{ stream, io }) catch |err| {
-            stream.close(io);
-            std.log.err("Failed to handle connection: {}", .{err});
-            continue;
-        };
+        var acceptFuture = io.async(std.Io.net.Server.accept, .{ &server, io });
+        const stream: std.Io.net.Stream = try acceptFuture.await(io);
+
+        _ = io.async(handleConnection, .{ stream, io });
     }
 }
 
@@ -43,6 +47,14 @@ pub fn handleConnection(stream: std.Io.net.Stream, io: Io) !void {
             std.log.err("Failed to receive request: {}", .{err});
             break;
         };
+
+        if (request.head.method == .GET and std.mem.eql(u8, request.head.target, "/healthz")) {
+            // Ignore favicon requests
+            try request.respond("Ok", .{
+                .status = .ok,
+            });
+            continue;
+        }
 
         switch (request.head.method) {
             .GET => {
