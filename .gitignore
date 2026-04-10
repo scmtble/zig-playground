@@ -4,9 +4,5 @@
 .envrc.local
 zig-cache/
 .zig-cache/
-<<<<<<< HEAD
-zig-out/
-=======
 zig-out/
 result
->>>>>>> 17220ad (init)
